@@ -1,10 +1,9 @@
 if (APPLE)
 
 cmake_minimum_required(VERSION 3.16)
+project(menubar VERSION 2.1)
+
 find_package(Albert REQUIRED)
-
-project(menubar VERSION 2.0)
-
 find_library(CORESERVICES_LIBRARY CoreServices)
 
 albert_plugin(
