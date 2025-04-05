@@ -1,15 +1,15 @@
 if (APPLE)
 
 cmake_minimum_required(VERSION 3.16)
-project(menubar VERSION 2.1)
+project(menubar VERSION 2.2)
 
 find_package(Albert REQUIRED)
-find_library(CORESERVICES_LIBRARY CoreServices)
 
 albert_plugin(
     LINK PRIVATE
         ${CORESERVICES_LIBRARY}
          objc
+         "-framework CoreServices"
          "-framework ApplicationServices"
          "-framework Cocoa"
     QT
