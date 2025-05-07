@@ -9,6 +9,7 @@
 #include <albert/matcher.h>
 using namespace albert;
 using namespace std;
+using namespace util;
 ALBERT_LOGGING_CATEGORY("menu")
 #if  ! __has_feature(objc_arc)
 #error This file must be compiled with ARC.
