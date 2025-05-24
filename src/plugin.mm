@@ -1,4 +1,4 @@
-// Copyright (c) 2024-2024 Manuel Schneider
+// Copyright (c) 2024-2025 Manuel Schneider
 
 #include "plugin.h"
 #include <Cocoa/Cocoa.h>
@@ -7,9 +7,10 @@
 #include <QUrl>
 #include <albert/logging.h>
 #include <albert/matcher.h>
+using namespace Qt::StringLiterals;
+using namespace albert::util;
 using namespace albert;
 using namespace std;
-using namespace util;
 ALBERT_LOGGING_CATEGORY("menu")
 #if  ! __has_feature(objc_arc)
 #error This file must be compiled with ARC.
@@ -38,73 +39,73 @@ static Qt::KeyboardModifiers toQt(AXMenuItemModifiers command_modifiers)
 // https://github.com/216k155/MacOSX-SDKs/blob/master/MacOSX10.11.sdk/System/Library/Frameworks/
 //   Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/Headers/Menus.h
 // https://github.com/Hammerspoon/hammerspoon/blob/master/extensions/application/application.lua
-static const map<char, const char*> glyph_map
+static const map<char, const QString> glyph_map
 {
-    // {0x00, ""},  // Null (always glyph 1)
-    {0x02, "⇥"},  // Tab to the right key (for left-to-right script systems)
-    {0x03, "⇤"},  // Tab to the left key (for right-to-left script systems)
-    {0x04, "⌤"},  // Enter key
-    {0x05, "⇧"},  // Shift key
-    {0x06, "⌃"},  // Control key
-    {0x07, "⌥"},  // Option key
-    {0x09, "␣"},  // Space (always glyph 3) key
-    {0x0A, "⌦"},  // Delete to the right key (for right-to-left script systems)
-    {0x0B, "↩"},  // Return key (for left-to-right script systems)
-    {0x0C, "↪"},  // Return key (for right-to-left script systems)
-    {0x0D, "↩"},  // Nonmarking return key
-    {0x0F, ""},  // Pencil key
-    {0x10, "⇣"},  // Downward dashed arrow key
-    {0x11, "⌘"},  // Command key
-    {0x12, "✓"},  // Checkmark key
-    {0x13, "◇"},  // Diamond key
-    {0x14, ""},  // Apple logo key (filled)
-    // {0x15, ""},  // Unassigned (paragraph in Korean)
-    {0x17, "⌫"},  // Delete to the left key (for left-to-right script systems)
-    {0x18, "⇠"},  // Leftward dashed arrow key
-    {0x19, "⇡"},  // Upward dashed arrow key
-    {0x1A, "⇢"},  // Rightward dashed arrow key
-    {0x1B, "⎋"},  // Escape key
-    {0x1C, "⌧"},  // Clear key
-    {0x1D, "『"},  // Unassigned (left double quotes in Japanese)
-    {0x1E, "』"},  // Unassigned (right double quotes in Japanese)
-    // {0x1F, ""},  // Unassigned (trademark in Japanese)
-    {0x61, "␢"},  // Blank key
-    {0x62, "⇞"},  // Page up key
-    {0x63, "⇪"},  // Caps lock key
-    {0x64, "←"},  // Left arrow key
-    {0x65, "→"},  // Right arrow key
-    {0x66, "↖"},  // Northwest arrow key
-    {0x67, "﹖"},  // Help key
-    {0x68, "↑"},  // Up arrow key
-    {0x69, "↘"},  // Southeast arrow key
-    {0x6A, "↓"},  // Down arrow key
-    {0x6B, "⇟"},  // Page down key
-    {0x6C, ""},  // Apple logo key (outline)
-    {0x6D, ""},  // Contextual menu key
-    {0x6E, "⌽"},  // Power key
-    {0x6F, "F1"},  // F1 key
-    {0x70, "F2"},  // F2 key
-    {0x71, "F3"},  // F3 key
-    {0x72, "F4"},  // F4 key
-    {0x73, "F5"},  // F5 key
-    {0x74, "F6"},  // F6 key
-    {0x75, "F7"},  // F7 key
-    {0x76, "F8"},  // F8 key
-    {0x77, "F9"},  // F9 key
-    {0x78, "F10"},  // F10 key
-    {0x79, "F11"},  // F11 key
-    {0x7A, "F12"},  // F12 key
-    {0x87, "F13"},  // F13 key
-    {0x88, "F14"},  // F14 key
-    {0x89, "F15"},  // F15 key
-    {0x8A, "⎈"},  // Control key (ISO standard)
-    {0x8C, "⏏"},  // Eject key (available on Mac OS X 10.2 and later)
-    {0x8D, "英数"},  // Japanese eisu key (available in Mac OS X 10.4 and later)
-    {0x8E, "かな"},  // Japanese kana key (available in Mac OS X 10.4 and later)
-    {0x8F, "F16"},  // F16 key (available in SnowLeopard and later)
-    {0x90, "F17"},  // F17 key (available in SnowLeopard and later)
-    {0x91, "F18"},  // F18 key (available in SnowLeopard and later)
-    {0x92, "F19"}   // F19 key (available in SnowLeopard and later)
+    // {0x00, u""_s},  // Null (always glyph 1)
+    {0x02, u"⇥"_s},  // Tab to the right key (for left-to-right script systems)
+    {0x03, u"⇤"_s},  // Tab to the left key (for right-to-left script systems)
+    {0x04, u"⌤"_s},  // Enter key
+    {0x05, u"⇧"_s},  // Shift key
+    {0x06, u"⌃"_s},  // Control key
+    {0x07, u"⌥"_s},  // Option key
+    {0x09, u"␣"_s},  // Space (always glyph 3) key
+    {0x0A, u"⌦"_s},  // Delete to the right key (for right-to-left script systems)
+    {0x0B, u"↩"_s},  // Return key (for left-to-right script systems)
+    {0x0C, u"↪"_s},  // Return key (for right-to-left script systems)
+    {0x0D, u"↩"_s},  // Nonmarking return key
+    {0x0F, u""_s},  // Pencil key
+    {0x10, u"⇣"_s},  // Downward dashed arrow key
+    {0x11, u"⌘"_s},  // Command key
+    {0x12, u"✓"_s},  // Checkmark key
+    {0x13, u"◇"_s},  // Diamond key
+    {0x14, u""_s},  // Apple logo key (filled)
+    // {0x15, u""_s},  // Unassigned (paragraph in Korean)
+    {0x17, u"⌫"_s},  // Delete to the left key (for left-to-right script systems)
+    {0x18, u"⇠"_s},  // Leftward dashed arrow key
+    {0x19, u"⇡"_s},  // Upward dashed arrow key
+    {0x1A, u"⇢"_s},  // Rightward dashed arrow key
+    {0x1B, u"⎋"_s},  // Escape key
+    {0x1C, u"⌧"_s},  // Clear key
+    {0x1D, u"『"_s},  // Unassigned (left double quotes in Japanese)
+    {0x1E, u"』"_s},  // Unassigned (right double quotes in Japanese)
+    // {0x1F, u""_s},  // Unassigned (trademark in Japanese)
+    {0x61, u"␢"_s},  // Blank key
+    {0x62, u"⇞"_s},  // Page up key
+    {0x63, u"⇪"_s},  // Caps lock key
+    {0x64, u"←"_s},  // Left arrow key
+    {0x65, u"→"_s},  // Right arrow key
+    {0x66, u"↖"_s},  // Northwest arrow key
+    {0x67, u"﹖"_s},  // Help key
+    {0x68, u"↑"_s},  // Up arrow key
+    {0x69, u"↘"_s},  // Southeast arrow key
+    {0x6A, u"↓"_s},  // Down arrow key
+    {0x6B, u"⇟"_s},  // Page down key
+    {0x6C, u""_s},  // Apple logo key (outline)
+    {0x6D, u""_s},  // Contextual menu key
+    {0x6E, u"⌽"_s},  // Power key
+    {0x6F, u"F1"_s},  // F1 key
+    {0x70, u"F2"_s},  // F2 key
+    {0x71, u"F3"_s},  // F3 key
+    {0x72, u"F4"_s},  // F4 key
+    {0x73, u"F5"_s},  // F5 key
+    {0x74, u"F6"_s},  // F6 key
+    {0x75, u"F7"_s},  // F7 key
+    {0x76, u"F8"_s},  // F8 key
+    {0x77, u"F9"_s},  // F9 key
+    {0x78, u"F10"_s},  // F10 key
+    {0x79, u"F11"_s},  // F11 key
+    {0x7A, u"F12"_s},  // F12 key
+    {0x87, u"F13"_s},  // F13 key
+    {0x88, u"F14"_s},  // F14 key
+    {0x89, u"F15"_s},  // F15 key
+    {0x8A, u"⎈"_s},  // Control key (ISO standard)
+    {0x8C, u"⏏"_s},  // Eject key (available on Mac OS X 10.2 and later)
+    {0x8D, u"英数"_s},  // Japanese eisu key (available in Mac OS X 10.4 and later)
+    {0x8E, u"かな"_s},  // Japanese kana key (available in Mac OS X 10.4 and later)
+    {0x8F, u"F16"_s},  // F16 key (available in SnowLeopard and later)
+    {0x90, u"F17"_s},  // F17 key (available in SnowLeopard and later)
+    {0x91, u"F18"_s},  // F18 key (available in SnowLeopard and later)
+    {0x92, u"F19"_s}   // F19 key (available in SnowLeopard and later)
 };
 
 struct MenuItem : public albert::Item
@@ -120,7 +121,7 @@ struct MenuItem : public albert::Item
 
     QString subtext() const override {
         return shortcut.isEmpty() ?
-                   pathString() : QStringLiteral("%1 (%2)").arg(pathString(), shortcut);
+                   pathString() : u"%1 (%2)"_s.arg(pathString(), shortcut);
     }
     QStringList iconUrls() const override { return {icon_url}; }
 
@@ -129,7 +130,7 @@ struct MenuItem : public albert::Item
     std::vector<albert::Action> actions() const override
     {
         return {{
-            "activate", Plugin::tr("Activate"),
+            u"activate"_s, Plugin::tr("Activate"),
             [this] {
                 if (auto err = AXUIElementPerformAction(element, kAXPressAction);
                     err != kAXErrorSuccess)
@@ -138,7 +139,7 @@ struct MenuItem : public albert::Item
         }};
     }
 
-    QString pathString() const { return path.join(" → "); }
+    QString pathString() const { return path.join(u" → "_s); }
 
     AXUIElementRef element;
     const QStringList path;
@@ -194,11 +195,11 @@ static void retrieveMenuItemsRecurse(const bool & valid,
                                                         &attribute_values);
 
     if (error != kAXErrorSuccess)
-        WARN << QString("Failed to retrieve multiple attributes: %1 (See AXError.h)").arg(error);
+        WARN << u"Failed to retrieve multiple attributes: %1 (See AXError.h)"_s.arg(error);
     else if(!attribute_values)
-        WARN << QString("Failed to retrieve multiple attributes: Returned null.");
+        WARN << "Failed to retrieve multiple attributes: Returned null.";
     else if(CFGetTypeID(attribute_values) != CFArrayGetTypeID())
-        WARN << QString("Failed to retrieve multiple attributes: Returned type is not array.");
+        WARN << "Failed to retrieve multiple attributes: Returned type is not array.";
     else{
 
         class skip : exception {};
@@ -286,7 +287,6 @@ static void retrieveMenuItemsRecurse(const bool & valid,
             else if (CFArrayRef actions = nullptr;
                      AXUIElementCopyActionNames(element, &actions) == kAXErrorSuccess && actions)
             {
-
                 QString command_char;
                 if (auto v = CFArrayGetValueAtIndex(attribute_values, AXKeys::MenuItemCmdChar);
                     v && CFGetTypeID(v) == CFStringGetTypeID())
@@ -308,7 +308,7 @@ static void retrieveMenuItemsRecurse(const bool & valid,
 
                 QString shortcut;
                 if (!command_char.isEmpty())
-                    shortcut = QKeySequence(mods).toString(QKeySequence::NativeText) + command_char;
+                    shortcut = QKeySequence(mods).toString(QKeySequence::NativeText) % command_char;
 
                 if (CFArrayContainsValue(actions,
                                          CFRangeMake(0, CFArrayGetCount(actions)),
@@ -331,24 +331,24 @@ static vector<shared_ptr<MenuItem>> retrieveMenuBarItems(const bool &valid)
 {
     vector<shared_ptr<MenuItem>> menu_items;
     auto app = NSWorkspace.sharedWorkspace.frontmostApplication;
-    auto app_icon_url = QString("qfip:" + QUrl::fromNSURL(app.bundleURL).toLocalFile());
+    QString app_icon_url = u"qfip:"_s % QUrl::fromNSURL(app.bundleURL).toLocalFile();
     auto app_ax = AXUIElementCreateApplication(app.processIdentifier);
 
     CFTypeRef app_ax_menu_bar = nullptr;
     if (auto error = AXUIElementCopyAttributeValue(app_ax, kAXMenuBarAttribute, &app_ax_menu_bar);
         error != kAXErrorSuccess)
-        WARN << QString("Failed to retrieve menubar: %1 (See AXError.h)").arg(error);
+        WARN << u"Failed to retrieve menubar: %1 (See AXError.h)"_s.arg(error);
     else if (!app_ax_menu_bar)
-        WARN << QString("Failed to retrieve menubar: Returned null.");
+        WARN << "Failed to retrieve menubar: Returned null.";
     else {
         CFTypeRef ax_menus = nullptr;
         if (error = AXUIElementCopyAttributeValue((AXUIElementRef)app_ax_menu_bar,
                                                   kAXChildrenAttribute,
                                                   &ax_menus);
             error != kAXErrorSuccess)
-            WARN << QString("Failed to retrieve menu bar menus: %1 (See AXError.h)").arg(error);
+            WARN << u"Failed to retrieve menu bar menus: %1 (See AXError.h)"_s.arg(error);
         else if (!ax_menus)
-            WARN << QString("Failed to retrieve menu bar menus: Returned null.");
+            WARN << "Failed to retrieve menu bar menus: Returned null.";
         else {
             // Skip "Apple" menu
             for (CFIndex i = 1, c = CFArrayGetCount((CFArrayRef) ax_menus); i < c; ++i)
@@ -379,7 +379,7 @@ Plugin::Plugin() : d(make_unique<Private>())
     if (!AXIsProcessTrusted())
     {
         DEBG << "Accessibility permission denied.";
-        QMessageBox::information(nullptr, "",
+        QMessageBox::information(nullptr, {},
                                  tr("The menu bar plugin requires accessibility permissions to "
                                     "access the menu items of the focused application.\n\n"
                                     "macOS requires you to enable this manually in system "
@@ -394,7 +394,7 @@ Plugin::Plugin() : d(make_unique<Private>())
 
 Plugin::~Plugin() = default;
 
-QString Plugin::defaultTrigger() const { return "m "; }
+QString Plugin::defaultTrigger() const { return u"m "_s; }
 
 bool Plugin::supportsFuzzyMatching() const { return true; }
 
