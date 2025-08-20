@@ -1,1 +1,1 @@
-# albert-plugin-menubar
+# Albert plugin: Menu bar
