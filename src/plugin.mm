@@ -5,6 +5,7 @@
 #include <QKeySequence>
 #include <QMessageBox>
 #include <QUrl>
+#include <albert/iconutil.h>
 #include <albert/logging.h>
 #include <albert/matcher.h>
 using namespace Qt::StringLiterals;
@@ -110,20 +111,27 @@ static const map<char, const QString> glyph_map
 
 struct MenuItem : public albert::Item
 {
-    MenuItem(AXUIElementRef e, QStringList p, const QString &s, const QString &i)
-        : element(e), path(p), shortcut(s), icon_url(i) { CFRetain(element); }
+    MenuItem(AXUIElementRef element, QStringList path, const QString &shortcut, unique_ptr<Icon> icon)
+        : element_(element)
+        , path_(path)
+        , shortcut_(shortcut)
+        , icon_(::move(icon))
+    {
+        CFRetain(element_);
+    }
 
-    ~MenuItem() { CFRelease(element); };
+    ~MenuItem() { CFRelease(element_); };
 
-    QString id() const override { return path.join(QString()); }
+    QString id() const override { return path_.join(QString()); }
 
-    QString text() const override { return path.last(); }
+    QString text() const override { return path_.last(); }
 
     QString subtext() const override {
-        return shortcut.isEmpty() ?
-                   pathString() : u"%1 (%2)"_s.arg(pathString(), shortcut);
+        return shortcut_.isEmpty() ?
+                   pathString() : u"%1 (%2)"_s.arg(pathString(), shortcut_);
     }
-    QStringList iconUrls() const override { return {icon_url}; }
+
+    unique_ptr<Icon> icon() const override { return icon_->clone(); }
 
     QString inputActionText() const override { return text(); }
 
@@ -132,19 +140,19 @@ struct MenuItem : public albert::Item
         return {{
             u"activate"_s, Plugin::tr("Activate"),
             [this] {
-                if (auto err = AXUIElementPerformAction(element, kAXPressAction);
+                if (auto err = AXUIElementPerformAction(element_, kAXPressAction);
                     err != kAXErrorSuccess)
                     WARN << "Failed to activate menu item";
             }
         }};
     }
 
-    QString pathString() const { return path.join(u" → "_s); }
+    QString pathString() const { return path_.join(u" → "_s); }
 
-    AXUIElementRef element;
-    const QStringList path;
-    const QString shortcut;
-    const QString icon_url;
+    AXUIElementRef element_;
+    const QStringList path_;
+    const QString shortcut_;
+    const unique_ptr<Icon> icon_;
 };
 
 Qt::KeyboardModifiers convertCFModifiersToQtModifiers(int cfModifiers)
@@ -160,7 +168,7 @@ Qt::KeyboardModifiers convertCFModifiersToQtModifiers(int cfModifiers)
 
 static void retrieveMenuItemsRecurse(const bool & valid,
                                      vector<shared_ptr<MenuItem>>& items,
-                                     const QString &icon_url,
+                                     const Icon &icon,
                                      QStringList path,
                                      AXUIElementRef element)
 {
@@ -281,7 +289,7 @@ static void retrieveMenuItemsRecurse(const bool & valid,
                     else if (CFGetTypeID(value) != AXUIElementGetTypeID())
                         throw runtime_error("Fetched child is not of type AXUIElementRef");
 
-                    retrieveMenuItemsRecurse(valid, items, icon_url, path, (AXUIElementRef)value);
+                    retrieveMenuItemsRecurse(valid, items, icon, path, (AXUIElementRef)value);
                 }
             }
             else if (CFArrayRef actions = nullptr;
@@ -313,7 +321,7 @@ static void retrieveMenuItemsRecurse(const bool & valid,
                 if (CFArrayContainsValue(actions,
                                          CFRangeMake(0, CFArrayGetCount(actions)),
                                          kAXPressAction))
-                    items.emplace_back(make_shared<MenuItem>(element, path, shortcut, icon_url));
+                    items.emplace_back(make_shared<MenuItem>(element, path, shortcut, icon.clone()));
 
                 CFRelease(actions);
             }
@@ -331,8 +339,8 @@ static vector<shared_ptr<MenuItem>> retrieveMenuBarItems(const bool &valid)
 {
     vector<shared_ptr<MenuItem>> menu_items;
     auto app = NSWorkspace.sharedWorkspace.frontmostApplication;
-    QString app_icon_url = u"qfip:"_s % QUrl::fromNSURL(app.bundleURL).toLocalFile();
     auto app_ax = AXUIElementCreateApplication(app.processIdentifier);
+    const auto icon = makeFileTypeIcon(QUrl::fromNSURL(app.bundleURL).toLocalFile());
 
     CFTypeRef app_ax_menu_bar = nullptr;
     if (auto error = AXUIElementCopyAttributeValue(app_ax, kAXMenuBarAttribute, &app_ax_menu_bar);
@@ -353,7 +361,7 @@ static vector<shared_ptr<MenuItem>> retrieveMenuBarItems(const bool &valid)
             // Skip "Apple" menu
             for (CFIndex i = 1, c = CFArrayGetCount((CFArrayRef) ax_menus); i < c; ++i)
                 retrieveMenuItemsRecurse(
-                    valid, menu_items, app_icon_url, {},
+                    valid, menu_items, *icon, {},
                     (AXUIElementRef)CFArrayGetValueAtIndex((CFArrayRef) ax_menus, i)
                 );
 
