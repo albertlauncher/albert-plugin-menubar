@@ -8,6 +8,8 @@
 #include <albert/iconutil.h>
 #include <albert/logging.h>
 #include <albert/matcher.h>
+#include <mutex>
+#include <shared_mutex>
 using namespace Qt::StringLiterals;
 using namespace albert::util;
 using namespace albert;
@@ -135,7 +137,7 @@ struct MenuItem : public albert::Item
 
     QString inputActionText() const override { return text(); }
 
-    std::vector<albert::Action> actions() const override
+    vector<albert::Action> actions() const override
     {
         return {{
             u"activate"_s, Plugin::tr("Activate"),
@@ -377,9 +379,10 @@ static vector<shared_ptr<MenuItem>> retrieveMenuBarItems(const bool &valid)
 class Plugin::Private
 {
 public:
-    bool fuzzy;
-    std::vector<std::shared_ptr<MenuItem>> menu_items;
-    pid_t current_menu_pid = 0;
+    atomic_bool fuzzy;
+    /*pid_t*/ atomic_int current_menu_pid = 0;
+    shared_mutex items_mtx;
+    vector<shared_ptr<MenuItem>> menu_items;
 };
 
 Plugin::Plugin() : d(make_unique<Private>())
@@ -418,9 +421,9 @@ vector<RankItem> Plugin::handleGlobalQuery(const Query &query)
 
     // Update menu if app changed
     auto app = NSWorkspace.sharedWorkspace.frontmostApplication;
-    if (app && d->current_menu_pid != app.processIdentifier)
+    if (app && d->current_menu_pid != (int)app.processIdentifier)
     {
-        d->current_menu_pid = app.processIdentifier;
+        d->current_menu_pid = (int)app.processIdentifier;
 
         // AX api is not thread save, dispatch in main thread
         __block vector<shared_ptr<MenuItem>> menu_items;
@@ -431,11 +434,13 @@ vector<RankItem> Plugin::handleGlobalQuery(const Query &query)
         });
         dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);  // Wait for user
 
+        scoped_lock lock(d->items_mtx);
         d->menu_items = ::move(menu_items);
     }
 
     vector<RankItem> results;
     Matcher matcher(query.string(), {.fuzzy = d->fuzzy});
+    shared_lock lock(d->items_mtx);
     for (const auto& item : d->menu_items)
         if (auto m = matcher.match(item->text(), item->pathString()); m)
             results.emplace_back(item, m);
