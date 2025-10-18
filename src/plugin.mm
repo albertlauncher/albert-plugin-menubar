@@ -3,15 +3,14 @@
 #include "plugin.h"
 #include <Cocoa/Cocoa.h>
 #include <QKeySequence>
-#include <QMessageBox>
 #include <QUrl>
 #include <albert/iconutil.h>
 #include <albert/logging.h>
 #include <albert/matcher.h>
+#include <albert/messagebox.h>
 #include <mutex>
 #include <shared_mutex>
 using namespace Qt::StringLiterals;
-using namespace albert::util;
 using namespace albert;
 using namespace std;
 ALBERT_LOGGING_CATEGORY("menu")
@@ -390,12 +389,11 @@ Plugin::Plugin() : d(make_unique<Private>())
     if (!AXIsProcessTrusted())
     {
         DEBG << "Accessibility permission denied.";
-        QMessageBox::information(nullptr, {},
-                                 tr("The menu bar plugin requires accessibility permissions to "
-                                    "access the menu items of the focused application.\n\n"
-                                    "macOS requires you to enable this manually in system "
-                                    "settings. Please toggle Albert in the accessibility settings, "
-                                    "which will appear after you close this dialog."));
+        information(tr("The menu bar plugin requires accessibility permissions to "
+                       "access the menu items of the focused application.\n\n"
+                       "macOS requires you to enable this manually in system "
+                       "settings. Please toggle Albert in the accessibility settings, "
+                       "which will appear after you close this dialog."));
 
         // Note: does not add an entry to the privacy settings in debug mode
         NSString* prefPage = @"x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility";
@@ -411,7 +409,7 @@ bool Plugin::supportsFuzzyMatching() const { return true; }
 
 void Plugin::setFuzzyMatching(bool enabled) { d->fuzzy = enabled; }
 
-vector<RankItem> Plugin::handleGlobalQuery(const Query &query)
+vector<RankItem> Plugin::rankItems(QueryContext &ctx)
 {
     if (!AXIsProcessTrusted())
     {
@@ -429,7 +427,7 @@ vector<RankItem> Plugin::handleGlobalQuery(const Query &query)
         __block vector<shared_ptr<MenuItem>> menu_items;
         dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
         dispatch_async(dispatch_get_main_queue(), ^{
-            menu_items = retrieveMenuBarItems(query.isValid());
+            menu_items = retrieveMenuBarItems(ctx.isValid());
             dispatch_semaphore_signal(semaphore);
         });
         dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);  // Wait for user
@@ -439,7 +437,7 @@ vector<RankItem> Plugin::handleGlobalQuery(const Query &query)
     }
 
     vector<RankItem> results;
-    Matcher matcher(query.string(), {.fuzzy = d->fuzzy});
+    Matcher matcher(ctx.query(), {.fuzzy = d->fuzzy});
     shared_lock lock(d->items_mtx);
     for (const auto& item : d->menu_items)
         if (auto m = matcher.match(item->text(), item->pathString()); m)

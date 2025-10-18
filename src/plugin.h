@@ -4,7 +4,7 @@
 #include <albert/globalqueryhandler.h>
 #include <albert/extensionplugin.h>
 
-class Plugin : public albert::util::ExtensionPlugin,
+class Plugin : public albert::ExtensionPlugin,
                public albert::GlobalQueryHandler
 {
     ALBERT_PLUGIN
@@ -14,7 +14,7 @@ public:
     QString defaultTrigger() const override;
     bool supportsFuzzyMatching() const override;
     void setFuzzyMatching(bool enabled) override;
-    std::vector<albert::RankItem> handleGlobalQuery(const albert::Query &) override;
+    std::vector<albert::RankItem> rankItems(albert::QueryContext &) override;
 
     class Private;
     std::unique_ptr<Private> d;
