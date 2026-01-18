@@ -4,7 +4,7 @@
 #include <Cocoa/Cocoa.h>
 #include <QKeySequence>
 #include <QUrl>
-#include <albert/iconutil.h>
+#include <albert/icon.h>
 #include <albert/logging.h>
 #include <albert/matcher.h>
 #include <albert/messagebox.h>
@@ -341,7 +341,7 @@ static vector<shared_ptr<MenuItem>> retrieveMenuBarItems(const bool &valid)
     vector<shared_ptr<MenuItem>> menu_items;
     auto app = NSWorkspace.sharedWorkspace.frontmostApplication;
     auto app_ax = AXUIElementCreateApplication(app.processIdentifier);
-    const auto icon = makeFileTypeIcon(QUrl::fromNSURL(app.bundleURL).toLocalFile());
+    const auto icon = Icon::fileType(QUrl::fromNSURL(app.bundleURL).toLocalFile());
 
     CFTypeRef app_ax_menu_bar = nullptr;
     if (auto error = AXUIElementCopyAttributeValue(app_ax, kAXMenuBarAttribute, &app_ax_menu_bar);
