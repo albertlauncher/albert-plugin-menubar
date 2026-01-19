@@ -1,7 +1,7 @@
 if (APPLE)
 
 cmake_minimum_required(VERSION 3.16)
-project(menubar VERSION 2.5.1)
+project(menubar VERSION 2.5.2)
 
 find_package(Albert REQUIRED)
 
