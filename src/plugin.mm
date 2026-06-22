@@ -407,9 +407,9 @@ QString Plugin::defaultTrigger() const { return u"m "_s; }
 
 bool Plugin::supportsFuzzyMatching() const { return true; }
 
-void Plugin::setFuzzyMatching(bool enabled) { d->fuzzy = enabled; }
+void Plugin::onFuzzyMatchingChanged(bool enabled) { d->fuzzy = enabled; }
 
-vector<RankItem> Plugin::rankItems(QueryContext &ctx)
+vector<RankItem> Plugin::rankItems(QueryContext ctx)
 {
     if (!AXIsProcessTrusted())
     {

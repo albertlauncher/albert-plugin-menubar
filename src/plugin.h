@@ -13,8 +13,8 @@ public:
     ~Plugin();
     QString defaultTrigger() const override;
     bool supportsFuzzyMatching() const override;
-    void setFuzzyMatching(bool enabled) override;
-    std::vector<albert::RankItem> rankItems(albert::QueryContext &) override;
+    void onFuzzyMatchingChanged(bool enabled) override;
+    std::vector<albert::RankItem> rankItems(albert::QueryContext) override;
 
     class Private;
     std::unique_ptr<Private> d;
